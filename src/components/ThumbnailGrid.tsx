@@ -21,9 +21,10 @@ export function ThumbnailGrid() {
         <div className="flex items-center gap-2 text-sm font-bold opacity-40">
            <LayoutGrid className="h-4 w-4 text-ink" />
            <span>{selectedCategoryId === 'unclassified' ? '未分類' : (metadata.categories.find(c => c.id === selectedCategoryId)?.name || 'すべての書類')}</span>
-           <span className="text-tiny font-mono text-ink/30 bg-ink/5 px-1.5 rounded-full border border-ink/5 tracking-normal ml-2">{docs.length}</span>
+           <span className="text-[9px] font-mono text-ink/30 bg-ink/5 px-1.5 rounded-full border border-ink/5 tracking-normal ml-2">{docs.length}</span>
         </div>
       </div>
+
       
       <div className="p-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
         {docs.map(doc => (
@@ -70,7 +71,7 @@ function ThumbnailCard({ doc }: { doc: any }) {
         <div className="absolute inset-0 bg-ink/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
            <div className="bg-ink/80 backdrop-blur px-3 py-1.5 rounded-full text-[9px] font-black text-white flex items-center gap-1.5 shadow-xl scale-90 group-hover:scale-100 transition-transform">
               <Maximize2 className="h-3 w-3" />
-              PREVIEW
+              プレビュー
            </div>
         </div>
       </div>

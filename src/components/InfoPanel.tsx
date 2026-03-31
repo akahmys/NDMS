@@ -29,10 +29,10 @@ export function InfoPanel() {
             </div>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">案件名</Label>
+                <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">案件名</Label>
                 <Input 
                   defaultValue={metadata.config.projectName} 
-                  className="bg-transparent border-ink/10 focus:border-accent/40"
+                  className="bg-transparent border-ink/10 focus:border-accent/40 font-bold"
                   onBlur={(e) => {
                     metadata.config.projectName = e.target.value;
                     saveProject();
@@ -40,10 +40,10 @@ export function InfoPanel() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">受注番号</Label>
+                <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">受注番号</Label>
                 <Input 
                   defaultValue={metadata.config.orderNumber} 
-                  className="bg-transparent border-ink/10"
+                  className="bg-transparent border-ink/10 font-mono text-sm"
                   onBlur={(e) => {
                     metadata.config.orderNumber = e.target.value;
                     saveProject();
@@ -51,10 +51,10 @@ export function InfoPanel() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">WBS</Label>
+                <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">WBS</Label>
                 <Input 
                   defaultValue={metadata.config.wbs} 
-                  className="bg-transparent border-ink/10"
+                  className="bg-transparent border-ink/10 font-mono text-sm"
                   onBlur={(e) => {
                     metadata.config.wbs = e.target.value;
                     saveProject();
@@ -76,10 +76,10 @@ export function InfoPanel() {
             {doc ? (
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">書類番号</Label>
+                  <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">書類番号</Label>
                   <Input 
                     defaultValue={doc.number} 
-                    className="bg-transparent border-ink/10"
+                    className="bg-transparent border-ink/10 font-mono text-sm"
                     onBlur={(e) => {
                       doc.number = e.target.value;
                       saveProject();
@@ -87,10 +87,10 @@ export function InfoPanel() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">書類名</Label>
+                  <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">書類名</Label>
                   <Input 
                     defaultValue={doc.documentName} 
-                    className="bg-transparent border-ink/10"
+                    className="bg-transparent border-ink/10 font-bold"
                     onBlur={(e) => {
                       doc.documentName = e.target.value;
                       saveProject();
@@ -98,11 +98,11 @@ export function InfoPanel() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-wider text-ink/30 px-1">ファイル名</Label>
+                  <Label className="text-[10px] font-black tracking-wider text-ink/30 px-1">ファイル名</Label>
                   <Input 
                     defaultValue={doc.fileName} 
                     disabled
-                    className="bg-transparent border-ink/5 opacity-50"
+                    className="bg-transparent border-ink/5 opacity-50 font-mono text-xs"
                   />
                 </div>
               </div>

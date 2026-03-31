@@ -1,18 +1,35 @@
 import { PDFDocument } from 'pdf-lib';
-import * as pdfjs from 'pdfjs-dist';
 
-// pdf.js のワーカー設定 (Client-side only)
-if (typeof window !== 'undefined') {
-  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-}
-
+/**
+ * PdfService - PDF ファイルの操作（サムネイル生成、結合）
+ */
 export class PdfService {
+  private static pdfjs: any = null;
+
+  /**
+   * pdf.js を動的に初期化する（Client-side only）。
+   */
+  private static async initPdfjs() {
+    if (this.pdfjs) return this.pdfjs;
+    if (typeof window === 'undefined') return null;
+    
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfjs = await import('pdfjs-dist');
+    pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+    this.pdfjs = pdfjs;
+    return pdfjs;
+  }
+
   /**
    * PDF の第1ページをサムネイル (dataURL) として生成する。
    */
   static async generateThumbnail(url: string, scale: number = 0.5): Promise<string | null> {
+    const pdfjs = await this.initPdfjs();
+    if (!pdfjs) return null;
+    
     try {
       const loadingTask = pdfjs.getDocument(url);
+
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale });

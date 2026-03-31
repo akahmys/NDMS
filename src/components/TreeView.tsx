@@ -25,8 +25,7 @@ export function TreeView() {
           </div>
         </div>
         <div className="ml-6 border-l border-ink/5 pl-2 py-1 space-y-0.5">
-          {/* Unclassified files logic here */}
-          <p className="text-[10px] text-ink/40 italic px-2">読み込み中...</p>
+          <p className="text-[10px] text-ink/40 font-mono italic px-2">読み込み中...</p>
         </div>
       </div>
 
@@ -57,7 +56,7 @@ function CategoryItem({ category }: { category: any }) {
         {isCollapsed ? <ChevronRight className="h-4 w-4 text-ink/20" /> : <ChevronDown className="h-4 w-4 text-ink/20" />}
         <Folder className="h-4 w-4 text-ink/40" />
         <span className="text-sm font-bold truncate">{category.name}</span>
-        <span className="text-[10px] bg-ink/5 px-1.5 rounded-full text-ink/30 font-mono">{docs.length}</span>
+        <span className="text-[9px] bg-ink/5 px-1.5 rounded-full text-ink/30 font-mono border border-ink/5">{docs.length}</span>
       </div>
       
       {!isCollapsed && (

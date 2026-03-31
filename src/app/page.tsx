@@ -5,7 +5,7 @@ import { useProject } from '@/contexts/ProjectContext';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { FolderOpen, Share, LayoutGrid, FileText } from 'lucide-react';
+import { FolderOpen, Share, LayoutGrid, FileText, Plus } from 'lucide-react';
 
 import { TreeView } from '@/components/TreeView';
 import { ThumbnailGrid } from '@/components/ThumbnailGrid';
@@ -18,8 +18,8 @@ export default function Home() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-paper text-ink p-8">
         <div className="text-center max-w-md space-y-6">
-          <h1 className="text-6xl font-black tracking-tighter">NDMS</h1>
-          <p className="text-ink/40 text-sm font-medium">図書フォルダを選択して開始してください。</p>
+          <h1 className="text-6xl font-black tracking-tighter text-ink">NDMS</h1>
+          <p className="text-ink/40 text-sm font-bold">図書フォルダを選択して開始してください。</p>
           <Button 
             onClick={openDirectory} 
             disabled={isLoading}
@@ -40,7 +40,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <h1 className="text-3xl font-black tracking-tighter leading-none">NDMS</h1>
           <Separator orientation="vertical" className="h-6 bg-ink/10" />
-          <p className="text-xs font-bold text-ink/40 truncate max-w-xs">{metadata?.config.projectName || '未設定のプロジェクト'}</p>
+          <p className="text-[10px] font-mono font-bold text-ink/40 truncate max-w-xs tracking-wider">{metadata?.config.projectName || '未設定のプロジェクト'}</p>
         </div>
         
         <div className="flex items-center gap-2">
