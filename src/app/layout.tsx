@@ -13,7 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 
-import { ProjectProvider } from "@/contexts/ProjectContext";
+import { ProjectProvider } from "@/contexts/projectContext";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "NDMS — New Document Management System",
@@ -31,7 +32,11 @@ export default function RootLayout({
       className={`${interSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <ProjectProvider>{children}</ProjectProvider>
+        <ProjectProvider>
+          <TooltipProvider>
+            {children}
+          </TooltipProvider>
+        </ProjectProvider>
       </body>
     </html>
   );

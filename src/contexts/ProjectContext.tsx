@@ -1,210 +1,140 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { FileSystemService } from '@/services/FileSystemService';
-import { ProjectService, ProjectMetadata } from '@/services/ProjectService';
+import React, { createContext, useContext } from 'react';
+import { FileSystemService } from '@/services/fileSystemService';
+import { ProjectMetadata, DocumentMetadata } from '@/types/project';
+import { useFileSystem } from '@/hooks/useFileSystem';
+import { useSelection } from '@/hooks/useSelection';
+import { useMetadata } from '@/hooks/useMetadata';
+import { usePdfActions } from '@/hooks/usePdfActions';
 
 interface ProjectContextType {
-  metadata: ProjectMetadata | null;
-  isLoading: boolean;
-  isProjectLoaded: boolean;
-  selectedDocId: string | null;
-  setSelectedDocId: (id: string | null) => void;
-  unclassifiedFiles: string[];
-  reorderCategories: (activeId: string, overId: string) => Promise<void>;
-  reorderDocuments: (activeId: string, overId: string) => Promise<void>;
-  moveDocument: (docId: string, targetCatId: string) => Promise<void>;
-  importFileHandle: (handle: FileSystemFileHandle, targetCatId: string | null) => Promise<void>;
-  openDirectory: () => Promise<void>;
-  saveProject: () => Promise<void>;
-  refreshProject: () => Promise<void>;
   fs: FileSystemService;
+  metadata: ProjectMetadata | null;
+  isProjectLoaded: boolean;
+  isLoading: boolean;
+  unclassifiedFiles: string[];
+  selectedDocIds: string[];
+  selectedCategoryId: string | null;
+  setSelectedDocIds: (ids: string[]) => void;
+  setSelectedCategoryId: (id: string | null) => void;
+  openDirectory: () => Promise<void>;
+  refreshProject: () => Promise<void>;
+  saveProject: () => Promise<void>;
+  reorderCategories: (activeId: string, overId: string, newParentId?: string | null, position?: 'before' | 'after') => Promise<void>;
+  reorderDocuments: (activeId: string, overId: string) => Promise<void>;
+  reorderMixed: (activeId: string, targetParentId: string | null, index: number) => Promise<void>;
+  moveDocument: (docId: string, targetCategoryId: string) => Promise<boolean | undefined>;
+  moveDocuments: (docIds: string[], targetCategoryId: string) => Promise<void>;
+  moveCategory: (catId: string, targetParentId: string | null) => Promise<boolean>;
+  createCategory: (name: string, parentId?: string | null) => Promise<string | null>;
+  renameCategory: (catId: string, newName: string) => Promise<boolean>;
+  mergeDocuments: (docIds: string[], fileName: string) => Promise<void>;
+  importFileHandle: (handle: FileSystemFileHandle, targetCategoryId: string) => Promise<void>;
+  deleteCategory: (catId: string) => Promise<boolean>;
+  deleteDocument: (docId: string) => Promise<boolean>;
+  renameDocument: (docId: string, newName: string) => Promise<boolean>;
+  // For TreeView compatibility
+  lastSelectedId: string | null;
+  setLastSelectedId: (id: string | null) => void;
+  selectRange: (ids: string[], currentId: string) => void;
+  handleSelection: (id: string, allIdsInContext: string[], e: React.MouseEvent) => void;
+  errorMessage: string | null;
+  setErrorMessage: (msg: string | null) => void;
+  updateConfig: (updates: Partial<ProjectMetadata['config']>) => Promise<void>;
+  updateDocument: (docId: string, updates: Partial<DocumentMetadata>) => Promise<void>;
+  syncMetadata: (metadata: ProjectMetadata | null) => void;
+  expandedIds: string[];
+  setExpandedIds: (ids: string[]) => void;
+  toggleExpanded: (id: string) => void;
 }
-
-const fs = new FileSystemService();
-const project = new ProjectService(fs);
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
-export function ProjectProvider({ children }: { children: ReactNode }) {
-  const [metadata, setMetadata] = useState<ProjectMetadata | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
-  const [unclassifiedFiles, setUnclassifiedFiles] = useState<string[]>([]);
+export function ProjectProvider({ children }: { children: React.ReactNode }) {
+  const { 
+    fs, isProjectLoaded, isLoading, selectDirectory 
+  } = useFileSystem();
 
-  const fetchUnclassifiedFiles = useCallback(async () => {
-    if (!fs.directoryHandle) return;
-    const entries = await fs.listEntries(null);
-    const files = entries
-      .filter(e => e.kind === 'file' && e.name.toLowerCase().endsWith('.pdf') && e.name !== 'project.json')
-      .map(e => e.name);
-    setUnclassifiedFiles(files);
-  }, []);
+  const {
+    selectedDocIds, setSelectedDocIds, 
+    selectedCategoryId, setSelectedCategoryId,
+    lastSelectedId, setLastSelectedId,
+    selectRange, handleSelection
+  } = useSelection();
 
-  const openDirectory = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const handle = await fs.selectDirectory();
-      if (handle) {
-        await project.init();
-        setMetadata({ ...project.metadata! });
-        await fetchUnclassifiedFiles();
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [fetchUnclassifiedFiles]);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
-  const saveProject = useCallback(async () => {
-    if (project.metadata) {
-      await project.save();
-      setMetadata({ ...project.metadata! });
-    }
-  }, []);
+  const {
+    metadata, unclassifiedFiles,
+    refreshProject, saveProject, 
+    reorderCategories, reorderDocuments, reorderMixed,
+    moveDocument, moveDocuments, moveCategory, createCategory, renameCategory, importFileHandle,
+    deleteCategory, deleteDocument, renameDocument,
+    updateConfig, updateDocument,
+    syncMetadata // setMetadata の代わりに syncMetadata を取得
+  } = useMetadata(fs, (msg) => setErrorMessage(msg));
 
-  const refreshProject = useCallback(async () => {
-    if (fs.directoryHandle) {
-      await project.init();
-      setMetadata({ ...project.metadata! });
-      await fetchUnclassifiedFiles();
-    }
-  }, [fetchUnclassifiedFiles]);
+  const [expandedIds, setExpandedIds] = React.useState<string[]>([]);
+  const toggleExpanded = (id: string) => {
+    setExpandedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
-  const reorderCategories = useCallback(async (activeId: string, overId: string) => {
-    if (!metadata) return;
-    const items = [...metadata.categories];
-    const oldIndex = items.findIndex((i) => i.id === activeId);
-    const newIndex = items.findIndex((i) => i.id === overId);
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const [movedItem] = items.splice(oldIndex, 1);
-      items.splice(newIndex, 0, movedItem);
-      // Update displayOrder
-      items.forEach((item, index) => {
-        item.displayOrder = index;
-      });
-      metadata.categories = items;
-      setMetadata({ ...metadata });
-      await saveProject();
-    }
-  }, [metadata, saveProject]);
+  const { mergeDocuments } = usePdfActions(fs, metadata, refreshProject, syncMetadata);
 
-  const reorderDocuments = useCallback(async (activeId: string, overId: string) => {
-    if (!metadata) return;
-    const items = [...metadata.documents];
-    const oldIndex = items.findIndex((i) => i.id === activeId);
-    const newIndex = items.findIndex((i) => i.id === overId);
-    if (oldIndex !== -1 && newIndex !== -1) {
-      const [movedItem] = items.splice(oldIndex, 1);
-      items.splice(newIndex, 0, movedItem);
-      // Update sortOrder within the same category
-      const catId = movedItem.categoryId;
-      const catDocs = items.filter(d => d.categoryId === catId);
-      catDocs.forEach((doc, index) => {
-        doc.sortOrder = index;
-      });
-      metadata.documents = items;
-      setMetadata({ ...metadata });
-      await saveProject();
-    }
-  }, [metadata, saveProject]);
-
-  const moveDocument = useCallback(async (docId: string, targetCatId: string) => {
-    if (!metadata) return;
-    const doc = metadata.documents.find(d => d.id === docId);
-    if (!doc || doc.categoryId === targetCatId) return;
-
-    const oldCat = metadata.categories.find(c => c.id === doc.categoryId);
-    const newCat = metadata.categories.find(c => c.id === targetCatId);
-    if (!newCat) return;
-
-    const oldPath = oldCat ? `${oldCat.path}/${doc.fileName}` : doc.fileName;
-    const newPath = newCat.path;
-
-    const success = await fs.moveAndRenameFile(oldPath, newPath, doc.fileName);
+  const openDirectory = async () => {
+    const success = await selectDirectory();
     if (success) {
-      doc.categoryId = targetCatId;
-      doc.sortOrder = metadata.documents.filter(d => d.categoryId === targetCatId).length;
-      setMetadata({ ...metadata });
-      await saveProject();
+      await refreshProject();
     }
-  }, [metadata, saveProject, fs]);
-
-  const importFileHandle = useCallback(async (handle: FileSystemFileHandle, targetCatId: string | null) => {
-    if (!fs.directoryHandle) return;
-
-    // プロジェクト内にあるかチェック
-    const relativePath = await fs.directoryHandle.resolve(handle);
-    const fileName = handle.name;
-
-    if (relativePath) {
-      // プロジェクト内にある場合：移動処理
-      const sourcePath = relativePath.join('/');
-      
-      if (targetCatId) {
-        // 特定カテゴリへのドロップ
-        const targetCat = metadata?.categories.find(c => c.id === targetCatId);
-        if (targetCat) {
-          const success = await fs.moveAndRenameFile(sourcePath, targetCat.path, fileName);
-          if (success) {
-            // 既存のドキュメントメタデータがあれば更新、なければ新規作成
-            const existingDoc = metadata?.documents.find(d => d.fileName === fileName);
-            if (existingDoc) {
-              existingDoc.categoryId = targetCatId;
-            } else {
-              await project.addDocument({ fileName, categoryId: targetCatId });
-            }
-          }
-        }
-      }
-      // もし targetCatId が null なら「未分類」への移動（物理的にはルートへ）
-      // ... (実装略。基本はルート、かつメタデータから削除)
-    } else {
-      // プロジェクト外の場合：コピー処理
-      if (targetCatId) {
-        const targetCat = metadata?.categories.find(c => c.id === targetCatId);
-        if (targetCat) {
-          const file = await handle.getFile();
-          const arrayBuffer = await file.arrayBuffer();
-          const success = await fs.writeFile(`${targetCat.path}/${fileName}`, arrayBuffer);
-          if (success) {
-            await project.addDocument({ fileName, categoryId: targetCatId });
-          }
-        }
-      }
-    }
-
-    setMetadata({ ...project.metadata! });
-    await fetchUnclassifiedFiles();
-    await saveProject();
-  }, [metadata, fs, project, saveProject, fetchUnclassifiedFiles]);
+  };
 
   return (
-    <ProjectContext.Provider
-      value={{
-        metadata,
-        isLoading,
-        isProjectLoaded: !!metadata,
-        selectedDocId,
-        setSelectedDocId,
-        unclassifiedFiles,
-        reorderCategories,
-        reorderDocuments,
-        moveDocument,
-        importFileHandle,
-        openDirectory,
-        saveProject,
-        refreshProject,
-        fs,
-      }}
-    >
+    <ProjectContext.Provider value={{ 
+      fs, 
+      metadata, 
+      isProjectLoaded, 
+      isLoading, 
+      unclassifiedFiles,
+      selectedDocIds,
+      selectedCategoryId,
+      setSelectedDocIds,
+      setSelectedCategoryId,
+      openDirectory, 
+      refreshProject,
+      saveProject,
+      reorderCategories,
+      reorderDocuments,
+      reorderMixed,
+      moveDocument,
+      moveDocuments,
+      moveCategory,
+      createCategory,
+      renameCategory,
+      mergeDocuments,
+      importFileHandle,
+      deleteCategory,
+      deleteDocument,
+      renameDocument,
+      syncMetadata,
+      lastSelectedId,
+      setLastSelectedId,
+      selectRange,
+      handleSelection,
+      errorMessage,
+      setErrorMessage,
+      updateConfig,
+      updateDocument,
+      expandedIds,
+      setExpandedIds,
+      toggleExpanded
+    }}>
       {children}
     </ProjectContext.Provider>
   );
 }
-
-
-
-
 
 export function useProject() {
   const context = useContext(ProjectContext);

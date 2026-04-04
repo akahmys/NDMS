@@ -1,23 +1,28 @@
 import { PDFDocument } from 'pdf-lib';
+import type * as PDFJS from 'pdfjs-dist';
 
 /**
  * PdfService - PDF ファイルの操作（サムネイル生成、結合）
  */
 export class PdfService {
-  private static pdfjs: any = null;
+  private static pdfjs: typeof PDFJS | null = null;
 
   /**
    * pdf.js を動的に初期化する（Client-side only）。
    */
-  private static async initPdfjs() {
+  private static async initPdfjs(): Promise<typeof PDFJS | null> {
     if (this.pdfjs) return this.pdfjs;
     if (typeof window === 'undefined') return null;
     
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const pdfjs = await import('pdfjs-dist');
-    pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-    this.pdfjs = pdfjs;
-    return pdfjs;
+    try {
+      const pdfjs = await import('pdfjs-dist');
+      pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+      this.pdfjs = pdfjs;
+      return pdfjs;
+    } catch (e) {
+      console.error('[PdfService] Failed to load pdfjs-dist', e);
+      return null;
+    }
   }
 
   /**
@@ -41,7 +46,13 @@ export class PdfService {
       canvas.height = viewport.height;
       canvas.width = viewport.width;
       
-      await page.render({ canvasContext: context, viewport }).promise;
+      const renderContext = {
+        canvasContext: context,
+        viewport,
+        canvas: canvas,
+      };
+      
+      await page.render(renderContext).promise;
       return canvas.toDataURL('image/jpeg', 0.8);
     } catch (e) {
       console.error('[PdfService] generateThumbnail failed', e);
